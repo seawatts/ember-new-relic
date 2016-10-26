@@ -1,36 +1,43 @@
 import Ember from 'ember';
+import ErrorHandler from '../utils/error-handler';
 
-export function initialize() {
-  const { NREUM } = window;
+const {
+  Logger,
+  RSVP
+} = Ember;
 
-  if (!NREUM) {
+export function initialize(app) {
+  const instance = app.lookup ? app : app.container;
+  const newRelic = instance.lookup('service:new-relic');
+
+  if (Ember.testing) {
     return;
   }
 
-  function handleError(error) {
-    try {
-      NREUM.noticeError(error);
-    } catch(e) {
-      // Ignore
+
+  // TODO: maybe set the app version here
+  newRelic.configure({
+
+  });
+
+  const handler = new ErrorHandler(newRelic);
+
+  let currentOnError = Ember.onerror;
+  let currentErrorLogger = Logger.error;
+
+  Ember.onerror = function() {
+    handler.report(...arguments);
+    if (currentOnError) {
+      currentOnError(...arguments);
     }
+  };
 
-    console.error(error.stack);
-  }
-
-  function generateError(cause, stack) {
-    const error = new Error(cause);
-
-    error.stack = stack;
-
-    return error;
-  }
-
-  Ember.onerror = handleError;
-
-  Ember.RSVP.on('error', handleError);
-
-  Ember.Logger.error = function(message, cause, stack) {
-    handleError(generateError(cause, stack));
+  RSVP.on('error', () => handler.report(...arguments));
+  Logger.error = function() {
+    handler.report(...arguments);
+    if (currentErrorLogger) {
+      currentErrorLogger(...arguments);
+    }
   };
 }
 
