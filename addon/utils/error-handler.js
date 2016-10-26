@@ -1,6 +1,6 @@
 import Ember from 'ember';
 
-const Logger = Ember.Logger;
+// const Logger = Ember.Logger;
 
 class ErrorHandler {
   constructor(reporter) {
@@ -14,8 +14,6 @@ class ErrorHandler {
     // If the error is an Error object, we pass it directly.
     if (error instanceof Error) {
       this.reporter.noticeError(error);
-      Logger.error(error.stack);
-
       return;
     }
 
@@ -44,7 +42,6 @@ class ErrorHandler {
     }
 
     this.reporter.noticeError(serializedError);
-    Logger.error(error);
   }
 }
 
